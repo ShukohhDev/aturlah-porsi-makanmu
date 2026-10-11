@@ -63,6 +63,19 @@ function readDB() {
       });
       writeDB(parsed);
     }
+
+    // Pastikan hak akses admin hanya untuk Shukoh#Dev, pengguna lain selalu berstatus user
+    let modified = false;
+    parsed.users.forEach(u => {
+      if (u.username !== 'Shukoh#Dev' && u.role === 'admin') {
+        u.role = 'user';
+        modified = true;
+      }
+    });
+    if (modified) {
+      writeDB(parsed);
+    }
+
     return parsed;
   } catch (err) {
     console.error('Error reading database file, reinitializing:', err);
@@ -131,6 +144,10 @@ app.post('/api/auth/register', (req, res) => {
   }
 
   const cleanUsername = username.trim();
+  if (cleanUsername.toLowerCase() === 'shukoh#dev') {
+    return res.status(403).json({ success: false, message: 'Nama akun Shukoh#Dev diproteksi khusus sebagai administrator utama.' });
+  }
+
   if (cleanUsername.length < 3) {
     return res.status(400).json({ success: false, message: 'Nama akun minimal 3 karakter.' });
   }
@@ -148,7 +165,7 @@ app.post('/api/auth/register', (req, res) => {
     id: 'user_' + Date.now(),
     username: cleanUsername,
     password: password,
-    role: 'user',
+    role: 'user', // Pengguna baru selalu berstatus user, tidak pernah diberikan hak admin
     profile: null,
     createdAt: new Date().toISOString()
   };
@@ -169,14 +186,14 @@ app.post('/api/auth/register', (req, res) => {
   });
 });
 
-// Admin API: Ambil seluruh akun terdaftar (Khusus Shukoh#Dev)
+// Admin API: Ambil seluruh akun terdaftar (Eksklusif Shukoh#Dev)
 app.get('/api/admin/users', (req, res) => {
   const { adminId } = req.query;
   const db = readDB();
 
   const requester = db.users.find(u => u.id === adminId);
-  if (!requester || (requester.role !== 'admin' && requester.username !== 'Shukoh#Dev')) {
-    return res.status(403).json({ success: false, message: 'Akses ditolak. Fitur ini khusus untuk administrator.' });
+  if (!requester || requester.username !== 'Shukoh#Dev') {
+    return res.status(403).json({ success: false, message: 'Akses ditolak. Hak admin hanya dimiliki secara eksklusif oleh akun Shukoh#Dev.' });
   }
 
   const userList = db.users.map(u => {
@@ -208,15 +225,15 @@ app.get('/api/admin/users', (req, res) => {
   });
 });
 
-// Admin API: Hapus akun pengguna (Khusus Shukoh#Dev)
+// Admin API: Hapus akun pengguna (Eksklusif Shukoh#Dev)
 app.delete('/api/admin/users/:userId', (req, res) => {
   const { adminId } = req.query;
   const { userId } = req.params;
   const db = readDB();
 
   const requester = db.users.find(u => u.id === adminId);
-  if (!requester || (requester.role !== 'admin' && requester.username !== 'Shukoh#Dev')) {
-    return res.status(403).json({ success: false, message: 'Akses ditolak.' });
+  if (!requester || requester.username !== 'Shukoh#Dev') {
+    return res.status(403).json({ success: false, message: 'Akses ditolak. Hak admin hanya dimiliki secara eksklusif oleh akun Shukoh#Dev.' });
   }
 
   const targetUser = db.users.find(u => u.id === userId);

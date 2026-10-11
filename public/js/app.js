@@ -342,6 +342,10 @@
       elements.viewDashboard.classList.add('active');
       elements.navUserActions.style.display = 'flex';
     } else if (viewName === 'admin') {
+      if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') {
+        showView('dashboard');
+        return;
+      }
       if (elements.viewAdmin) elements.viewAdmin.classList.add('active');
       elements.navUserActions.style.display = 'flex';
     }
@@ -356,7 +360,7 @@
     }
     elements.navUserActions.style.display = 'flex';
     elements.navUsername.textContent = state.currentUser.username;
-    const isAdmin = state.currentUser.role === 'admin' || state.currentUser.username === 'Shukoh#Dev';
+    const isAdmin = state.currentUser.username === 'Shukoh#Dev';
     elements.userRoleBadge.textContent = isAdmin ? 'Administrator' : 'Pengguna';
     if (elements.btnAdminPanel) {
       elements.btnAdminPanel.style.display = isAdmin ? 'inline-flex' : 'none';
@@ -1166,12 +1170,16 @@
   let adminUsersList = [];
 
   async function openAdminPanel() {
+    if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') {
+      alert('Akses ditolak. Fitur pemantauan ini khusus untuk akun Shukoh#Dev.');
+      return;
+    }
     showView('admin');
     await loadAdminUsers();
   }
 
   async function loadAdminUsers() {
-    if (!state.currentUser) return;
+    if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
     try {
       const res = await fetch(`/api/admin/users?adminId=${state.currentUser.id}`);
       const data = await res.json();
@@ -1232,7 +1240,7 @@
 
     filtered.forEach(u => {
       const tr = document.createElement('tr');
-      const isAdmin = u.role === 'admin' || u.username === 'Shukoh#Dev';
+      const isAdmin = u.username === 'Shukoh#Dev';
       const roleBadge = isAdmin
         ? '<span class="role-badge-admin">Admin</span>'
         : '<span class="role-badge-user">User</span>';
