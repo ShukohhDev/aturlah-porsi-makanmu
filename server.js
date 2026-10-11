@@ -169,6 +169,74 @@ app.post('/api/auth/register', (req, res) => {
   });
 });
 
+// Admin API: Ambil seluruh akun terdaftar (Khusus Shukoh#Dev)
+app.get('/api/admin/users', (req, res) => {
+  const { adminId } = req.query;
+  const db = readDB();
+
+  const requester = db.users.find(u => u.id === adminId);
+  if (!requester || (requester.role !== 'admin' && requester.username !== 'Shukoh#Dev')) {
+    return res.status(403).json({ success: false, message: 'Akses ditolak. Fitur ini khusus untuk administrator.' });
+  }
+
+  const userList = db.users.map(u => {
+    const mealCount = (db.meals || []).filter(m => m.userId === u.id).length;
+    return {
+      id: u.id,
+      username: u.username,
+      role: u.role,
+      createdAt: u.createdAt || new Date().toISOString(),
+      hasProfile: !!u.profile,
+      profile: u.profile ? {
+        name: u.profile.name,
+        gender: u.profile.gender,
+        height: u.profile.height,
+        weight: u.profile.weight,
+        targetWeight: u.profile.targetWeight,
+        goal: u.profile.goal,
+        activityLevel: u.profile.activityLevel,
+        dailyCalories: u.profile.dailyQuota ? u.profile.dailyQuota.calories : 0
+      } : null,
+      mealCount
+    };
+  });
+
+  res.json({
+    success: true,
+    totalUsers: userList.length,
+    users: userList
+  });
+});
+
+// Admin API: Hapus akun pengguna (Khusus Shukoh#Dev)
+app.delete('/api/admin/users/:userId', (req, res) => {
+  const { adminId } = req.query;
+  const { userId } = req.params;
+  const db = readDB();
+
+  const requester = db.users.find(u => u.id === adminId);
+  if (!requester || (requester.role !== 'admin' && requester.username !== 'Shukoh#Dev')) {
+    return res.status(403).json({ success: false, message: 'Akses ditolak.' });
+  }
+
+  const targetUser = db.users.find(u => u.id === userId);
+  if (!targetUser) {
+    return res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan.' });
+  }
+
+  if (targetUser.username === 'Shukoh#Dev') {
+    return res.status(400).json({ success: false, message: 'Akun administrator utama tidak dapat dihapus.' });
+  }
+
+  db.users = db.users.filter(u => u.id !== userId);
+  if (db.meals) {
+    db.meals = db.meals.filter(m => m.userId !== userId);
+  }
+  writeDB(db);
+
+  res.json({ success: true, message: 'Akun pengguna berhasil dihapus dari sistem.' });
+});
+
 // Profile API: Save/Update Profile
 app.post('/api/user/profile', (req, res) => {
   const { userId, name, gender, height, weight, birthDate, activityLevel, goal, targetWeight } = req.body;

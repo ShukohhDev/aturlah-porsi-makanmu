@@ -28,6 +28,7 @@
     viewAuth: document.getElementById('view-auth'),
     viewOnboarding: document.getElementById('view-onboarding'),
     viewDashboard: document.getElementById('view-dashboard'),
+    viewAdmin: document.getElementById('view-admin'),
 
     // Navbar
     navUserActions: document.getElementById('nav-user-actions'),
@@ -35,9 +36,19 @@
     navUsername: document.getElementById('nav-username'),
     btnToggleTheme: document.getElementById('btn-toggle-theme'),
     themeBtnLabel: document.getElementById('theme-btn-label'),
+    btnAdminPanel: document.getElementById('btn-admin-panel'),
     btnOpenSettings: document.getElementById('btn-open-settings'),
     btnEditProfile: document.getElementById('btn-edit-profile'),
     btnLogout: document.getElementById('btn-logout'),
+
+    // Admin Panel Elements
+    btnAdminBackDash: document.getElementById('btn-admin-back-dash'),
+    adminStatTotalUsers: document.getElementById('admin-stat-total-users'),
+    adminStatActiveProfiles: document.getElementById('admin-stat-active-profiles'),
+    adminStatTotalMeals: document.getElementById('admin-stat-total-meals'),
+    adminSearchInput: document.getElementById('admin-search-input'),
+    btnAdminRefresh: document.getElementById('btn-admin-refresh'),
+    adminUsersTbody: document.getElementById('admin-users-tbody'),
 
     // Auth
     tabLogin: document.getElementById('tab-login'),
@@ -227,6 +238,9 @@
     if (elements.btnToggleTheme) {
       elements.btnToggleTheme.addEventListener('click', toggleTheme);
     }
+    if (elements.btnAdminPanel) {
+      elements.btnAdminPanel.addEventListener('click', openAdminPanel);
+    }
     elements.btnLogout.addEventListener('click', handleLogout);
     elements.btnEditProfile.addEventListener('click', () => {
       if (state.currentUser) {
@@ -292,6 +306,22 @@
     elements.btnCloseSettings.addEventListener('click', () => elements.modalSettings.style.display = 'none');
     elements.btnCloseSettingsFooter.addEventListener('click', () => elements.modalSettings.style.display = 'none');
     elements.btnSaveSettings.addEventListener('click', handleSaveSettingsKey);
+
+    // Admin Panel Events
+    if (elements.btnAdminBackDash) {
+      elements.btnAdminBackDash.addEventListener('click', () => {
+        showView('dashboard');
+        loadDashboardData();
+      });
+    }
+    if (elements.btnAdminRefresh) {
+      elements.btnAdminRefresh.addEventListener('click', loadAdminUsers);
+    }
+    if (elements.adminSearchInput) {
+      elements.adminSearchInput.addEventListener('input', (e) => {
+        renderAdminUsersTable(e.target.value.trim().toLowerCase());
+      });
+    }
   }
 
   // Switch View
@@ -299,6 +329,7 @@
     elements.viewAuth.classList.remove('active');
     elements.viewOnboarding.classList.remove('active');
     elements.viewDashboard.classList.remove('active');
+    if (elements.viewAdmin) elements.viewAdmin.classList.remove('active');
 
     if (viewName === 'auth') {
       elements.viewAuth.classList.add('active');
@@ -310,6 +341,9 @@
     } else if (viewName === 'dashboard') {
       elements.viewDashboard.classList.add('active');
       elements.navUserActions.style.display = 'flex';
+    } else if (viewName === 'admin') {
+      if (elements.viewAdmin) elements.viewAdmin.classList.add('active');
+      elements.navUserActions.style.display = 'flex';
     }
   }
 
@@ -317,11 +351,16 @@
   function updateNavbarUser() {
     if (!state.currentUser) {
       elements.navUserActions.style.display = 'none';
+      if (elements.btnAdminPanel) elements.btnAdminPanel.style.display = 'none';
       return;
     }
     elements.navUserActions.style.display = 'flex';
     elements.navUsername.textContent = state.currentUser.username;
-    elements.userRoleBadge.textContent = state.currentUser.role === 'admin' ? 'Administrator' : 'Pengguna';
+    const isAdmin = state.currentUser.role === 'admin' || state.currentUser.username === 'Shukoh#Dev';
+    elements.userRoleBadge.textContent = isAdmin ? 'Administrator' : 'Pengguna';
+    if (elements.btnAdminPanel) {
+      elements.btnAdminPanel.style.display = isAdmin ? 'inline-flex' : 'none';
+    }
   }
 
   // Tab Auth Switcher
@@ -1119,6 +1158,142 @@
       "'": '&#39;',
       '"': '&quot;'
     }[tag] || tag));
+  }
+
+  // ==========================================================================
+  // Logika Panel Pemantauan Administrator (Khusus Shukoh#Dev)
+  // ==========================================================================
+  let adminUsersList = [];
+
+  async function openAdminPanel() {
+    showView('admin');
+    await loadAdminUsers();
+  }
+
+  async function loadAdminUsers() {
+    if (!state.currentUser) return;
+    try {
+      const res = await fetch(`/api/admin/users?adminId=${state.currentUser.id}`);
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message || 'Gagal memuat data pengguna.');
+        return;
+      }
+
+      adminUsersList = data.users || [];
+      updateAdminStats(adminUsersList);
+      const query = elements.adminSearchInput ? elements.adminSearchInput.value.trim().toLowerCase() : '';
+      renderAdminUsersTable(query);
+    } catch (err) {
+      console.error('Error loading admin users:', err);
+    }
+  }
+
+  function updateAdminStats(users) {
+    if (elements.adminStatTotalUsers) {
+      elements.adminStatTotalUsers.textContent = users.length;
+    }
+    if (elements.adminStatActiveProfiles) {
+      const activeProfiles = users.filter(u => u.hasProfile).length;
+      elements.adminStatActiveProfiles.textContent = activeProfiles;
+    }
+    if (elements.adminStatTotalMeals) {
+      const totalMeals = users.reduce((acc, u) => acc + (u.mealCount || 0), 0);
+      elements.adminStatTotalMeals.textContent = totalMeals;
+    }
+  }
+
+  function renderAdminUsersTable(query = '') {
+    if (!elements.adminUsersTbody) return;
+    elements.adminUsersTbody.innerHTML = '';
+
+    const filtered = adminUsersList.filter(u => {
+      const uname = (u.username || '').toLowerCase();
+      const pname = (u.profile && u.profile.name ? u.profile.name : '').toLowerCase();
+      return uname.includes(query) || pname.includes(query);
+    });
+
+    if (filtered.length === 0) {
+      elements.adminUsersTbody.innerHTML = `
+        <tr>
+          <td colspan="8" style="text-align: center; color: var(--color-text-muted); padding: 32px;">
+            Tidak ada akun terdaftar yang cocok dengan pencarian.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    const goalLabels = {
+      loss: 'Turunkan BB',
+      gain: 'Naikkan BB',
+      maintain: 'Pertahankan BB'
+    };
+
+    filtered.forEach(u => {
+      const tr = document.createElement('tr');
+      const isAdmin = u.role === 'admin' || u.username === 'Shukoh#Dev';
+      const roleBadge = isAdmin
+        ? '<span class="role-badge-admin">Admin</span>'
+        : '<span class="role-badge-user">User</span>';
+
+      const p = u.profile;
+      const physicalData = p
+        ? `${p.height || 0} cm / ${p.weight || 0} kg`
+        : '<span class="badge-profile-empty">Belum diisi</span>';
+
+      const goalData = p
+        ? `${goalLabels[p.goal] || p.goal} (${p.dailyCalories || 0} kkal)`
+        : '<span class="badge-profile-empty">Belum dihitung</span>';
+
+      const regDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString('id-ID', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }) : '-';
+
+      const actionBtn = (u.username === 'Shukoh#Dev')
+        ? '<span style="font-size: 11px; color: var(--color-text-subtle);">Akun Utama</span>'
+        : `<button type="button" class="btn-subtle btn-delete-user" data-user-id="${u.id}">Hapus</button>`;
+
+      tr.innerHTML = `
+        <td><strong>${escapeHtml(u.username)}</strong></td>
+        <td>${roleBadge}</td>
+        <td>${p && p.name ? escapeHtml(p.name) : '<span class="badge-profile-empty">Belum ada</span>'}</td>
+        <td>${physicalData}</td>
+        <td>${goalData}</td>
+        <td><strong>${u.mealCount || 0}</strong> porsi</td>
+        <td>${regDate}</td>
+        <td>${actionBtn}</td>
+      `;
+
+      const deleteBtn = tr.querySelector('.btn-delete-user');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => handleDeleteUserByAdmin(u.id, u.username));
+      }
+
+      elements.adminUsersTbody.appendChild(tr);
+    });
+  }
+
+  async function handleDeleteUserByAdmin(userId, username) {
+    if (!confirm(`Apakah Anda yakin ingin menghapus akun '${username}' dari sistem? Seluruh riwayat makannya juga akan dihapus.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users/${userId}?adminId=${state.currentUser.id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message || 'Gagal menghapus pengguna.');
+        return;
+      }
+      await loadAdminUsers();
+    } catch (err) {
+      alert('Terjadi kesalahan jaringan: ' + err.message);
+    }
   }
 
   // Run on DOM Loaded

@@ -1576,6 +1576,202 @@ button {
   color: var(--color-primary);
 }
 
+/* ==========================================================================
+   Admin Panel (Khusus Shukoh#Dev)
+   ========================================================================== */
+.admin-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.admin-header-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.admin-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  letter-spacing: -0.02em;
+  margin: 4px 0;
+}
+
+.admin-sub {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  max-width: 680px;
+}
+
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.admin-stat-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+}
+
+.admin-stat-number {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1.1;
+  margin: 4px 0;
+}
+
+.admin-stat-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 9px 14px;
+  flex: 1;
+  min-width: 260px;
+  color: var(--color-text-muted);
+}
+
+.admin-search-control {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--color-text-main);
+}
+
+.admin-users-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.admin-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.admin-table th {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr:hover td {
+  background-color: var(--color-surface-subtle);
+}
+
+.role-badge-admin {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+}
+
+.role-badge-user {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.badge-profile-active {
+  color: var(--color-success);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-profile-empty {
+  color: var(--color-text-subtle);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.btn-delete-user {
+  color: var(--color-danger);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+}
+
+.btn-delete-user:hover {
+  background-color: var(--color-danger-light);
+}
+
 /* Responsive Breakpoints */
 @media (max-width: 768px) {
   .nav-container {
