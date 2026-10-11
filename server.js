@@ -12,12 +12,16 @@ app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Ensure data folder and database.json exist
-const DATA_DIR = path.join(__dirname, 'data');
+// Ensure data folder and database.json exist (adaptif untuk Vercel /tmp dan lokal)
+const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data') : path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch (e) {
+  console.warn('Gagal membuat direktori data:', e.message);
 }
 
 function readDB() {
@@ -762,6 +766,10 @@ function generateIntelligentFallbackAnalysis() {
   return selected;
 }
 
-app.listen(PORT, () => {
-  console.log(`Server Aturlah Porsi Makanmu berjalan pada port http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server Aturlah Porsi Makanmu berjalan pada port http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
