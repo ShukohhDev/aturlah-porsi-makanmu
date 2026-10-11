@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aturlah Porsi Makanmu | Pengatur Gizi dan Pemantau Makanan</title>
+  <meta name="description" content="Aplikasi pemantau gizi dan kalori harian presisi berbasis analisis visual makanan.">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#059669">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Atur Porsi">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <span class="brand-badge">GIZI</span>
+        <span class="brand-title">Aturlah Porsi Makanmu</span>
+      </div>
+
+      <div class="nav-right-actions">
+        <button type="button" class="btn-subtle" id="btn-toggle-theme" title="Beralih Tema Warna">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <span id="theme-btn-label">Tema Gelap</span>
+        </button>
+
+        <div class="nav-actions" id="nav-user-actions" style="display: none;">
+        <div class="user-pill">
+          <span class="user-role" id="user-role-badge">Pengguna</span>
+          <span class="user-name" id="nav-username">Akun</span>
+        </div>
+        <button type="button" class="btn-subtle" id="btn-open-settings" title="Pengaturan API">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Pengaturan</span>
+        </button>
+        <button type="button" class="btn-subtle" id="btn-edit-profile" title="Ubah Data Gizi">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Profil Gizi</span>
+        </button>
+        <button type="button" class="btn-subtle btn-danger-subtle" id="btn-logout" title="Keluar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Keluar</span>
+        </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+
+    <!-- View 1: Auth (Login & Register) -->
+    <section id="view-auth" class="view-panel active">
+      <div class="auth-wrapper">
+        <div class="auth-card">
+          <div class="auth-header">
+            <h1 class="auth-title">Masuk ke Akun Anda</h1>
+            <p class="auth-subtitle">Kelola konsumsi kalori dan nutrisi harian dengan analisis visual makanan.</p>
+          </div>
+
+          <!-- Quick Admin Preset Info -->
+          <div class="demo-box">
+            <div class="demo-header">
+              <span class="demo-tag">AKUN DEMO ADMINISTRATOR</span>
+              <button type="button" class="btn-link" id="btn-fill-admin">Gunakan Akun Ini</button>
+            </div>
+            <div class="demo-credentials">
+              <div class="cred-row">
+                <span class="cred-label">Nama Akun:</span>
+                <span class="cred-value">Shukoh#Dev</span>
+              </div>
+              <div class="cred-row">
+                <span class="cred-label">Kata Sandi:</span>
+                <span class="cred-value">FAFA17052007</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="auth-tabs">
+            <button type="button" class="auth-tab-btn active" id="tab-login">Masuk</button>
+            <button type="button" class="auth-tab-btn" id="tab-register">Daftar Akun Baru</button>
+          </div>
+
+          <form id="form-auth" class="auth-form">
+            <div class="form-group">
+              <label for="auth-username" class="form-label">Nama Akun</label>
+              <input type="text" id="auth-username" class="form-control" placeholder="Contoh: Shukoh#Dev" required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+              <label for="auth-password" class="form-label">Kata Sandi</label>
+              <input type="password" id="auth-password" class="form-control" placeholder="Masukkan kata sandi" required autocomplete="current-password">
+            </div>
+
+            <div id="auth-error-msg" class="alert-error" style="display: none;"></div>
+
+            <button type="submit" class="btn-solid btn-block" id="btn-auth-submit">Masuk ke Aplikasi</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- View 2: Onboarding Personal Data -->
+    <section id="view-onboarding" class="view-panel">
+      <div class="onboarding-wrapper">
+        <div class="onboarding-card">
+          <div class="onboarding-header">
+            <span class="section-tag">DATA FISIK DAN TARGET</span>
+            <h1 class="onboarding-title">Lengkapi Data Diri Anda</h1>
+            <p class="onboarding-subtitle">Sistem akan menghitung Angka Metabolisme Basal (BMR) dan Total Pengeluaran Energi Harian (TDEE) untuk menentukan kuota nutrisi presisi.</p>
+          </div>
+
+          <form id="form-profile" class="profile-form">
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label for="profile-name" class="form-label">Nama Lengkap</label>
+                <input type="text" id="profile-name" class="form-control" placeholder="Nama Anda" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Jenis Kelamin</label>
+                <div class="radio-pill-group">
+                  <label class="radio-pill">
+                    <input type="radio" name="gender" value="male" checked>
+                    <span>Laki-laki</span>
+                  </label>
+                  <label class="radio-pill">
+                    <input type="radio" name="gender" value="female">
+                    <span>Perempuan</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="profile-birthdate" class="form-label">Tanggal Lahir</label>
+                <input type="date" id="profile-birthdate" class="form-control" required value="2000-01-01">
+              </div>
+
+              <div class="form-group">
+                <label for="profile-height" class="form-label">Tinggi Badan (cm)</label>
+                <input type="number" id="profile-height" class="form-control" placeholder="170" min="80" max="250" required value="170">
+              </div>
+
+              <div class="form-group">
+                <label for="profile-weight" class="form-label">Berat Badan Saat Ini (kg)</label>
+                <input type="number" id="profile-weight" class="form-control" placeholder="65" min="20" max="300" step="0.5" required value="65">
+              </div>
+
+              <div class="form-group full-width">
+                <label for="profile-activity" class="form-label">Tingkat Aktivitas Fisik</label>
+                <select id="profile-activity" class="form-control" required>
+                  <option value="sedentary">Sedentary (Banyak duduk, hampir tidak pernah olahraga)</option>
+                  <option value="light" selected>Ringan (Olahraga santai 1 sampai 3 hari per minggu)</option>
+                  <option value="moderate">Sedang (Olahraga aktif 3 sampai 5 hari per minggu)</option>
+                  <option value="active">Berat (Latihan fisik keras 6 sampai 7 hari per minggu)</option>
+                  <option value="very_active">Sangat Berat (Latihan fisik 2 kali sehari atau pekerja fisik)</option>
+                </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label class="form-label">Tujuan Penggunaan Website</label>
+                <div class="goal-selection-grid">
+                  <label class="goal-card">
+                    <input type="radio" name="goal" value="loss" checked>
+                    <div class="goal-card-content">
+                      <div class="goal-card-title">Menurunkan Berat Badan</div>
+                      <div class="goal-card-desc">Defisit kalori terkontrol untuk pembakaran lemak sehat.</div>
+                    </div>
+                  </label>
+
+                  <label class="goal-card">
+                    <input type="radio" name="goal" value="maintain">
+                    <div class="goal-card-content">
+                      <div class="goal-card-title">Mempertahankan Berat Badan</div>
+                      <div class="goal-card-desc">Kalori seimbang sesuai dengan kebutuhan harian Anda.</div>
+                    </div>
+                  </label>
+
+                  <label class="goal-card">
+                    <input type="radio" name="goal" value="gain">
+                    <div class="goal-card-content">
+                      <div class="goal-card-title">Menaikkan Berat Badan</div>
+                      <div class="goal-card-desc">Surplus kalori terukur untuk peningkatan massa tubuh.</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Dynamic Target Weight Container -->
+              <div class="form-group full-width" id="target-weight-container">
+                <label for="profile-target-weight" class="form-label">Target Berat Badan yang Diinginkan (kg)</label>
+                <input type="number" id="profile-target-weight" class="form-control" placeholder="Contoh: 60" min="20" max="300" step="0.5">
+                <p class="form-hint">Tentukan sasaran berat badan yang ingin Anda capai.</p>
+              </div>
+            </div>
+
+            <!-- Real-time calculation preview -->
+            <div class="calc-preview-box">
+              <div class="calc-preview-header">Estimasi Awal Kebutuhan Tubuh</div>
+              <div class="calc-preview-grid">
+                <div class="calc-item">
+                  <span class="calc-label">BMR (Metabolisme Basal)</span>
+                  <span class="calc-val" id="preview-bmr">1.550 kkal</span>
+                </div>
+                <div class="calc-item">
+                  <span class="calc-label">TDEE (Pengeluaran Harian)</span>
+                  <span class="calc-val" id="preview-tdee">2.130 kkal</span>
+                </div>
+                <div class="calc-item">
+                  <span class="calc-label">Target Kalori Harian</span>
+                  <span class="calc-val highlight" id="preview-target-cal">1.630 kkal</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-solid" id="btn-save-profile">Simpan Profil dan Buka Dashboard</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- View 3: Main Dashboard -->
+    <section id="view-dashboard" class="view-panel">
+      <div class="dashboard-container">
+
+        <!-- Top Overview Bar -->
+        <div class="dashboard-header-card">
+          <div class="header-left">
+            <span class="section-tag" id="dash-date-tag">Hari Ini</span>
+            <h1 class="dash-user-greeting" id="dash-greeting">Halo, Pengguna</h1>
+            <p class="dash-goal-text" id="dash-goal-desc">Target: Mempertahankan Berat Badan</p>
+          </div>
+          <div class="header-actions">
+            <button type="button" class="btn-solid btn-camera-trigger" id="btn-open-camera">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+              <span>Foto Makanan</span>
+            </button>
+            <button type="button" class="btn-outline" id="btn-upload-file-trigger">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>Unggah Foto</span>
+            </button>
+            <input type="file" id="file-input-fallback" accept="image/jpeg,image/webp,image/png" style="display: none;">
+          </div>
+        </div>
+
+        <!-- Main Quota Overview Section -->
+        <div class="quota-master-card">
+          <div class="quota-top-row">
+            <div class="quota-calories-block">
+              <div class="calorie-metric-label">SISA KUOTA KALORI HARI INI</div>
+              <div class="calorie-metric-number" id="quota-cal-remaining">0</div>
+              <div class="calorie-metric-unit">Kilokalori (kkal)</div>
+            </div>
+            <div class="quota-stats-side">
+              <div class="side-stat">
+                <span class="side-stat-label">Batas Target Harian</span>
+                <span class="side-stat-val" id="quota-cal-target">0 kkal</span>
+              </div>
+              <div class="side-stat">
+                <span class="side-stat-label">Sudah Terkonsumsi</span>
+                <span class="side-stat-val" id="quota-cal-consumed">0 kkal</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Solid Progress Bar -->
+          <div class="progress-track">
+            <div class="progress-fill" id="cal-progress-bar" style="width: 0%;"></div>
+          </div>
+          <div class="progress-caption">
+            <span id="cal-progress-percent">0% terpenuhi</span>
+            <span id="cal-burn-status">Metabolisme dasar (BMR): <span id="meta-bmr-val">0</span> kkal</span>
+          </div>
+
+          <!-- Nutrients Quota Grid -->
+          <div class="nutrients-grid">
+            <div class="nutrient-card card-protein">
+              <div class="nutrient-title">Protein</div>
+              <div class="nutrient-remaining" id="nut-protein-rem">0 g</div>
+              <div class="nutrient-sub">Tersisa dari <span id="nut-protein-tar">0</span> g</div>
+              <div class="nutrient-track"><div class="nutrient-fill" id="fill-protein"></div></div>
+            </div>
+
+            <div class="nutrient-card card-carbs">
+              <div class="nutrient-title">Karbohidrat</div>
+              <div class="nutrient-remaining" id="nut-carbs-rem">0 g</div>
+              <div class="nutrient-sub">Tersisa dari <span id="nut-carbs-tar">0</span> g</div>
+              <div class="nutrient-track"><div class="nutrient-fill" id="fill-carbs"></div></div>
+            </div>
+
+            <div class="nutrient-card card-fat">
+              <div class="nutrient-title">Lemak</div>
+              <div class="nutrient-remaining" id="nut-fat-rem">0 g</div>
+              <div class="nutrient-sub">Tersisa dari <span id="nut-fat-tar">0</span> g</div>
+              <div class="nutrient-track"><div class="nutrient-fill" id="fill-fat"></div></div>
+            </div>
+
+            <div class="nutrient-card card-fiber">
+              <div class="nutrient-title">Serat Pangan</div>
+              <div class="nutrient-remaining" id="nut-fiber-rem">0 g</div>
+              <div class="nutrient-sub">Tersisa dari target <span id="nut-fiber-tar">0</span> g</div>
+              <div class="nutrient-track"><div class="nutrient-fill" id="fill-fiber"></div></div>
+            </div>
+
+            <div class="nutrient-card card-sugar">
+              <div class="nutrient-title">Batas Gula</div>
+              <div class="nutrient-remaining" id="nut-sugar-rem">0 g</div>
+              <div class="nutrient-sub">Sisa batas aman dari <span id="nut-sugar-tar">0</span> g</div>
+              <div class="nutrient-track"><div class="nutrient-fill" id="fill-sugar"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meals Categorized Daily Log -->
+        <div class="meals-section">
+          <div class="meals-header">
+            <div>
+              <h2 class="meals-title">Riwayat Makanan Hari Ini</h2>
+              <p class="meals-sub">Daftar porsi yang telah dikonfirmasi dan dicatat ke dalam kuota harian.</p>
+            </div>
+          </div>
+
+          <div class="meals-category-list">
+            <!-- Sarapan -->
+            <div class="meal-category-block" id="category-breakfast">
+              <div class="meal-cat-header">
+                <div class="cat-title-wrap">
+                  <span class="cat-pill">WAKTU MAKAN</span>
+                  <span class="cat-name">Sarapan Pagi</span>
+                </div>
+                <div class="cat-summary" id="sum-breakfast">0 kkal</div>
+              </div>
+              <div class="cat-items-container" id="list-breakfast">
+                <div class="empty-meal-placeholder">Belum ada makanan yang dicatat untuk sarapan.</div>
+              </div>
+            </div>
+
+            <!-- Makan Siang -->
+            <div class="meal-category-block" id="category-lunch">
+              <div class="meal-cat-header">
+                <div class="cat-title-wrap">
+                  <span class="cat-pill">WAKTU MAKAN</span>
+                  <span class="cat-name">Makan Siang</span>
+                </div>
+                <div class="cat-summary" id="sum-lunch">0 kkal</div>
+              </div>
+              <div class="cat-items-container" id="list-lunch">
+                <div class="empty-meal-placeholder">Belum ada makanan yang dicatat untuk makan siang.</div>
+              </div>
+            </div>
+
+            <!-- Makan Malam -->
+            <div class="meal-category-block" id="category-dinner">
+              <div class="meal-cat-header">
+                <div class="cat-title-wrap">
+                  <span class="cat-pill">WAKTU MAKAN</span>
+                  <span class="cat-name">Makan Malam</span>
+                </div>
+                <div class="cat-summary" id="sum-dinner">0 kkal</div>
+              </div>
+              <div class="cat-items-container" id="list-dinner">
+                <div class="empty-meal-placeholder">Belum ada makanan yang dicatat untuk makan malam.</div>
+              </div>
+            </div>
+
+            <!-- Camilan -->
+            <div class="meal-category-block" id="category-snack">
+              <div class="meal-cat-header">
+                <div class="cat-title-wrap">
+                  <span class="cat-pill">WAKTU MAKAN</span>
+                  <span class="cat-name">Camilan dan Lainnya</span>
+                </div>
+                <div class="cat-summary" id="sum-snack">0 kkal</div>
+              </div>
+              <div class="cat-items-container" id="list-snack">
+                <div class="empty-meal-placeholder">Belum ada camilan yang dicatat.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal 1: Camera Interface -->
+  <div class="modal-backdrop" id="modal-camera" style="display: none;">
+    <div class="camera-dialog">
+      <div class="dialog-header">
+        <div class="dialog-title">Kamera Makanan</div>
+        <button type="button" class="btn-icon-close" id="btn-close-camera" title="Tutup Kamera">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="camera-viewport-wrap">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <canvas id="camera-canvas" style="display: none;"></canvas>
+        <div class="camera-grid-overlay">
+          <div class="grid-crosshair"></div>
+        </div>
+      </div>
+
+      <div class="camera-controls">
+        <button type="button" class="btn-subtle" id="btn-switch-cam" title="Balik Kamera">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+          </svg>
+          <span>Putar Kamera</span>
+        </button>
+
+        <button type="button" class="btn-shutter" id="btn-capture-photo" title="Ambil Foto">
+          <div class="shutter-inner"></div>
+        </button>
+
+        <button type="button" class="btn-subtle" id="btn-camera-upload-fallback">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          <span>Pilih Galeri</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Photo Quality & Confirmation Phase -->
+  <div class="modal-backdrop" id="modal-preview" style="display: none;">
+    <div class="preview-dialog">
+      <div class="dialog-header">
+        <div>
+          <div class="dialog-title">Konfirmasi Kualitas Foto</div>
+          <div class="dialog-subtitle">Pastikan foto tidak blur dan seluruh hidangan terlihat jelas</div>
+        </div>
+        <button type="button" class="btn-icon-close" id="btn-close-preview" title="Tutup">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="preview-body">
+        <div class="preview-image-container">
+          <img id="preview-image-elem" src="" alt="Pratinjau Makanan">
+        </div>
+
+        <div class="preview-meta-form">
+          <div class="form-group">
+            <label class="form-label">Kategori Waktu Makan</label>
+            <div class="radio-pill-group">
+              <label class="radio-pill">
+                <input type="radio" name="preview-meal-type" value="breakfast">
+                <span>Sarapan</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="preview-meal-type" value="lunch" checked>
+                <span>Makan Siang</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="preview-meal-type" value="dinner">
+                <span>Makan Malam</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="preview-meal-type" value="snack">
+                <span>Camilan</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="preview-checklist">
+            <div class="check-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Foto tajam dan tidak buram</span>
+            </div>
+            <div class="check-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Semua lauk dan porsi tampak di frame</span>
+            </div>
+            <div class="check-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Pencahayaan cukup jelas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn-subtle" id="btn-preview-retake">Ambil Ulang</button>
+        <button type="button" class="btn-solid" id="btn-preview-proceed">
+          <span>Lanjut Analisis Makanan</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Analyzing State -->
+  <div class="modal-backdrop" id="modal-analyzing" style="display: none;">
+    <div class="analyzing-dialog">
+      <div class="analyzing-spinner"></div>
+      <div class="analyzing-title">Sedang Menganalisis Porsi Makanan</div>
+      <p class="analyzing-desc">Model Vision sedang mendeteksi komponen bahan di piring, mengestimasi gramasi, serta menghitung nutrisi makro.</p>
+    </div>
+  </div>
+
+  <!-- Modal 4: Review, Grams Correction & Manual Component Adder -->
+  <div class="modal-backdrop" id="modal-review" style="display: none;">
+    <div class="review-dialog">
+      <div class="dialog-header">
+        <div>
+          <div class="dialog-title">Hasil Analisis Gizi Piring</div>
+          <div class="dialog-subtitle">Anda dapat mengoreksi gramasi atau menambahkan bahan yang tersembunyi</div>
+        </div>
+        <button type="button" class="btn-icon-close" id="btn-close-review" title="Tutup">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="review-body">
+        <div id="simulation-banner" class="notice-box" style="display: none;">
+          <span class="notice-title">Mode Estimasi Cerdas</span>
+          <span class="notice-text">Hasil dihitung menggunakan database gizi cadangan karena API Key belum aktif. Anda dapat menghubungkan Gemini API Key di menu Pengaturan.</span>
+        </div>
+
+        <div class="food-overview-edit">
+          <div class="form-group">
+            <label for="review-food-name" class="form-label">Nama Hidangan</label>
+            <input type="text" id="review-food-name" class="form-control" value="Hidangan">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Waktu Makan</label>
+            <select id="review-meal-type-select" class="form-control">
+              <option value="breakfast">Sarapan</option>
+              <option value="lunch">Makan Siang</option>
+              <option value="dinner">Makan Malam</option>
+              <option value="snack">Camilan</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Total Nutrients Bar -->
+        <div class="review-totals-card">
+          <div class="totals-headline">
+            <span class="totals-label">TOTAL ESTIMASI NUTRISI</span>
+            <span class="totals-cal"><span id="review-total-cal">0</span> kkal</span>
+          </div>
+          <div class="totals-grid">
+            <div class="total-col col-protein"><span class="lbl">Protein:</span> <span class="val" id="review-total-protein">0 g</span></div>
+            <div class="total-col col-fat"><span class="lbl">Lemak:</span> <span class="val" id="review-total-fat">0 g</span></div>
+            <div class="total-col col-carbs"><span class="lbl">Karbohidrat:</span> <span class="val" id="review-total-carbs">0 g</span></div>
+            <div class="total-col col-fiber"><span class="lbl">Serat:</span> <span class="val" id="review-total-fiber">0 g</span></div>
+            <div class="total-col col-sugar"><span class="lbl">Gula:</span> <span class="val" id="review-total-sugar">0 g</span></div>
+          </div>
+        </div>
+
+        <!-- Component List Cards -->
+        <div class="components-header-row">
+          <span class="components-sec-title">Rincian Komponen di Piring</span>
+          <button type="button" class="btn-subtle btn-sm" id="btn-add-manual-comp">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Tambah Bahan Manual</span>
+          </button>
+        </div>
+
+        <div class="components-cards-list" id="review-components-list">
+          <!-- Populated by JS -->
+        </div>
+
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn-subtle" id="btn-cancel-review">Batal</button>
+        <button type="button" class="btn-solid" id="btn-confirm-save-meal">
+          <span>Konfirmasi dan Simpan ke Riwayat</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: Settings (Gemini API Key) -->
+  <div class="modal-backdrop" id="modal-settings" style="display: none;">
+    <div class="settings-dialog">
+      <div class="dialog-header">
+        <div>
+          <div class="dialog-title">Pengaturan Sistem</div>
+          <div class="dialog-subtitle">Konfigurasi Gemini Vision API Key</div>
+        </div>
+        <button type="button" class="btn-icon-close" id="btn-close-settings" title="Tutup">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="settings-body">
+        <div class="settings-status-box">
+          <span class="status-label">Status Koneksi API:</span>
+          <span class="status-val" id="settings-key-status">Memeriksa...</span>
+        </div>
+
+        <div class="form-group">
+          <label for="settings-api-key-input" class="form-label">Gemini API Key</label>
+          <input type="password" id="settings-api-key-input" class="form-control" placeholder="Masukkan AI Studio API Key (AIzaSy...)">
+          <p class="form-hint">Kunci API disimpan secara aman di backend. Jika dikosongkan, sistem beralih ke simulasi cerdas otomatis.</p>
+        </div>
+
+        <div id="settings-alert-msg" class="alert-success" style="display: none;"></div>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn-subtle" id="btn-close-settings-footer">Tutup</button>
+        <button type="button" class="btn-solid" id="btn-save-settings">Simpan Kunci API</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/nutrition-calc.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
