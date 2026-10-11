@@ -37,18 +37,48 @@
     btnToggleTheme: document.getElementById('btn-toggle-theme'),
     themeBtnLabel: document.getElementById('theme-btn-label'),
     btnAdminPanel: document.getElementById('btn-admin-panel'),
+    btnOpenReport: document.getElementById('btn-open-report'),
     btnOpenSettings: document.getElementById('btn-open-settings'),
     btnEditProfile: document.getElementById('btn-edit-profile'),
     btnLogout: document.getElementById('btn-logout'),
 
     // Admin Panel Elements
     btnAdminBackDash: document.getElementById('btn-admin-back-dash'),
+    btnAdminTabUsers: document.getElementById('btn-admin-tab-users'),
+    btnAdminTabReports: document.getElementById('btn-admin-tab-reports'),
+    adminPaneUsers: document.getElementById('admin-pane-users'),
+    adminPaneReports: document.getElementById('admin-pane-reports'),
+    adminReportsBadge: document.getElementById('admin-reports-badge'),
     adminStatTotalUsers: document.getElementById('admin-stat-total-users'),
     adminStatActiveProfiles: document.getElementById('admin-stat-active-profiles'),
     adminStatTotalMeals: document.getElementById('admin-stat-total-meals'),
     adminSearchInput: document.getElementById('admin-search-input'),
     btnAdminRefresh: document.getElementById('btn-admin-refresh'),
     adminUsersTbody: document.getElementById('admin-users-tbody'),
+    adminStatTotalReports: document.getElementById('admin-stat-total-reports'),
+    adminStatReportsBaru: document.getElementById('admin-stat-reports-baru'),
+    adminStatReportsProses: document.getElementById('admin-stat-reports-proses'),
+    adminStatReportsSelesai: document.getElementById('admin-stat-reports-selesai'),
+    adminSearchReports: document.getElementById('admin-search-reports'),
+    btnAdminRefreshReports: document.getElementById('btn-admin-refresh-reports'),
+    adminReportsTbody: document.getElementById('admin-reports-tbody'),
+    adminReportFilterPills: document.getElementById('admin-report-filter-pills'),
+
+    // User Report Modal Elements
+    modalReport: document.getElementById('modal-report'),
+    btnCloseReport: document.getElementById('btn-close-report'),
+    btnCancelReport: document.getElementById('btn-cancel-report'),
+    tabBtnReportCreate: document.getElementById('tab-btn-report-create'),
+    tabBtnReportHistory: document.getElementById('tab-btn-report-history'),
+    paneReportCreate: document.getElementById('pane-report-create'),
+    paneReportHistory: document.getElementById('pane-report-history'),
+    formCreateReport: document.getElementById('form-create-report'),
+    reportInputTitle: document.getElementById('report-input-title'),
+    reportInputDesc: document.getElementById('report-input-desc'),
+    reportFormMsg: document.getElementById('report-form-msg'),
+    btnSubmitReport: document.getElementById('btn-submit-report'),
+    btnRefreshUserReports: document.getElementById('btn-refresh-user-reports'),
+    userReportsList: document.getElementById('user-reports-list'),
 
     // Auth
     tabLogin: document.getElementById('tab-login'),
@@ -307,6 +337,15 @@
     elements.btnCloseSettingsFooter.addEventListener('click', () => elements.modalSettings.style.display = 'none');
     elements.btnSaveSettings.addEventListener('click', handleSaveSettingsKey);
 
+    // User Report Modal Events
+    if (elements.btnOpenReport) elements.btnOpenReport.addEventListener('click', openReportModal);
+    if (elements.btnCloseReport) elements.btnCloseReport.addEventListener('click', closeReportModal);
+    if (elements.btnCancelReport) elements.btnCancelReport.addEventListener('click', closeReportModal);
+    if (elements.tabBtnReportCreate) elements.tabBtnReportCreate.addEventListener('click', () => switchReportTab('create'));
+    if (elements.tabBtnReportHistory) elements.tabBtnReportHistory.addEventListener('click', () => switchReportTab('history'));
+    if (elements.formCreateReport) elements.formCreateReport.addEventListener('submit', handleSubmitReport);
+    if (elements.btnRefreshUserReports) elements.btnRefreshUserReports.addEventListener('click', loadUserReports);
+
     // Admin Panel Events
     if (elements.btnAdminBackDash) {
       elements.btnAdminBackDash.addEventListener('click', () => {
@@ -314,12 +353,32 @@
         loadDashboardData();
       });
     }
+    if (elements.btnAdminTabUsers) elements.btnAdminTabUsers.addEventListener('click', () => switchAdminTab('users'));
+    if (elements.btnAdminTabReports) elements.btnAdminTabReports.addEventListener('click', () => switchAdminTab('reports'));
     if (elements.btnAdminRefresh) {
       elements.btnAdminRefresh.addEventListener('click', loadAdminUsers);
+    }
+    if (elements.btnAdminRefreshReports) {
+      elements.btnAdminRefreshReports.addEventListener('click', loadAdminReports);
     }
     if (elements.adminSearchInput) {
       elements.adminSearchInput.addEventListener('input', (e) => {
         renderAdminUsersTable(e.target.value.trim().toLowerCase());
+      });
+    }
+    if (elements.adminSearchReports) {
+      elements.adminSearchReports.addEventListener('input', () => {
+        renderAdminReportsTable();
+      });
+    }
+    if (elements.adminReportFilterPills) {
+      elements.adminReportFilterPills.querySelectorAll('.filter-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          elements.adminReportFilterPills.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentAdminReportFilter = btn.getAttribute('data-status') || 'all';
+          renderAdminReportsTable();
+        });
       });
     }
   }
@@ -1175,7 +1234,20 @@
       return;
     }
     showView('admin');
+    switchAdminTab('users');
     await loadAdminUsers();
+    await fetchAdminReportsStatsOnly();
+  }
+
+  async function fetchAdminReportsStatsOnly() {
+    if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
+    try {
+      const res = await fetch(`/api/admin/reports?adminId=${state.currentUser.id}`);
+      const data = await res.json();
+      if (data.success && data.stats) {
+        updateAdminReportStats(data.stats);
+      }
+    } catch (e) {}
   }
 
   async function loadAdminUsers() {
@@ -1302,6 +1374,368 @@
     } catch (err) {
       alert('Terjadi kesalahan jaringan: ' + err.message);
     }
+  }
+
+  // ==========================================================================
+  // Logika Panel Laporan Khusus Administrator (Shukoh#Dev)
+  // ==========================================================================
+  let adminReportsList = [];
+  let currentAdminReportFilter = 'all';
+
+  function switchAdminTab(tab) {
+    if (tab === 'users') {
+      if (elements.btnAdminTabUsers) elements.btnAdminTabUsers.classList.add('active');
+      if (elements.btnAdminTabReports) elements.btnAdminTabReports.classList.remove('active');
+      if (elements.adminPaneUsers) elements.adminPaneUsers.style.display = 'block';
+      if (elements.adminPaneReports) elements.adminPaneReports.style.display = 'none';
+      loadAdminUsers();
+    } else {
+      if (elements.btnAdminTabReports) elements.btnAdminTabReports.classList.add('active');
+      if (elements.btnAdminTabUsers) elements.btnAdminTabUsers.classList.remove('active');
+      if (elements.adminPaneUsers) elements.adminPaneUsers.style.display = 'none';
+      if (elements.adminPaneReports) elements.adminPaneReports.style.display = 'block';
+      loadAdminReports();
+    }
+  }
+
+  async function loadAdminReports() {
+    if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
+    try {
+      const res = await fetch(`/api/admin/reports?adminId=${state.currentUser.id}`);
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message || 'Gagal memuat laporan pengguna.');
+        return;
+      }
+
+      adminReportsList = data.reports || [];
+      updateAdminReportStats(data.stats || {});
+      renderAdminReportsTable();
+    } catch (err) {
+      console.error('Error loading admin reports:', err);
+    }
+  }
+
+  function updateAdminReportStats(stats) {
+    if (elements.adminStatTotalReports) elements.adminStatTotalReports.textContent = stats.total || 0;
+    if (elements.adminStatReportsBaru) elements.adminStatReportsBaru.textContent = stats.baru || 0;
+    if (elements.adminStatReportsProses) elements.adminStatReportsProses.textContent = stats.proses || 0;
+    if (elements.adminStatReportsSelesai) elements.adminStatReportsSelesai.textContent = stats.selesai || 0;
+    if (elements.adminReportsBadge) elements.adminReportsBadge.textContent = stats.baru || 0;
+  }
+
+  function renderAdminReportsTable() {
+    if (!elements.adminReportsTbody) return;
+    elements.adminReportsTbody.innerHTML = '';
+
+    const query = elements.adminSearchReports ? elements.adminSearchReports.value.trim().toLowerCase() : '';
+
+    const filtered = adminReportsList.filter(r => {
+      if (currentAdminReportFilter !== 'all' && r.status !== currentAdminReportFilter) {
+        return false;
+      }
+      if (!query) return true;
+      const uname = (r.username || '').toLowerCase();
+      const title = (r.title || '').toLowerCase();
+      const desc = (r.description || '').toLowerCase();
+      const cat = (r.category || '').toLowerCase();
+      return uname.includes(query) || title.includes(query) || desc.includes(query) || cat.includes(query);
+    });
+
+    if (filtered.length === 0) {
+      elements.adminReportsTbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; color: var(--color-text-muted); padding: 32px;">
+            Tidak ada laporan pengguna yang cocok dengan filter atau pencarian saat ini.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    const categoryLabels = {
+      bug: { text: 'Bug / Kendala', cls: 'category-badge-bug' },
+      saran: { text: 'Saran Fitur', cls: 'category-badge-saran' },
+      kritik: { text: 'Kritik & Masukan', cls: 'category-badge-kritik' }
+    };
+
+    const statusBadgeMap = {
+      baru: { text: 'Baru Saja', cls: 'status-badge-baru' },
+      proses: { text: 'Sedang Diproses', cls: 'status-badge-proses' },
+      selesai: { text: 'Sudah Selesai', cls: 'status-badge-selesai' }
+    };
+
+    filtered.forEach(r => {
+      const tr = document.createElement('tr');
+      const cat = categoryLabels[r.category] || { text: r.category, cls: 'category-badge-bug' };
+      const st = statusBadgeMap[r.status] || statusBadgeMap['baru'];
+
+      const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) : '-';
+
+      tr.innerHTML = `
+        <td><span style="font-size: 11px; color: var(--color-text-muted);">${dateStr}</span></td>
+        <td><strong>${escapeHtml(r.username)}</strong></td>
+        <td><span class="category-badge ${cat.cls}">${cat.text}</span></td>
+        <td>
+          <div style="font-weight: 700; color: var(--color-text-main); margin-bottom: 3px;">${escapeHtml(r.title)}</div>
+          <div style="font-size: 12px; color: var(--color-text-muted); max-width: 300px; line-height: 1.4;">${escapeHtml(r.description)}</div>
+          ${r.adminNote ? `<div style="margin-top: 4px; font-size: 11px; color: var(--color-primary);"><em>Tanggapan: ${escapeHtml(r.adminNote)}</em></div>` : ''}
+        </td>
+        <td><span class="status-badge ${st.cls}">${st.text}</span></td>
+        <td>
+          <select class="admin-status-select" data-report-id="${r.id}">
+            <option value="baru" ${r.status === 'baru' ? 'selected' : ''}>Baru Saja</option>
+            <option value="proses" ${r.status === 'proses' ? 'selected' : ''}>Sedang Diproses</option>
+            <option value="selesai" ${r.status === 'selesai' ? 'selected' : ''}>Sudah Selesai</option>
+          </select>
+        </td>
+        <td>
+          <button type="button" class="btn-subtle btn-delete-report" data-report-id="${r.id}">Hapus</button>
+        </td>
+      `;
+
+      const select = tr.querySelector('.admin-status-select');
+      if (select) {
+        select.addEventListener('change', async (e) => {
+          const newStatus = e.target.value;
+          await handleUpdateReportStatus(r.id, newStatus, r.adminNote || '');
+        });
+      }
+
+      const deleteBtn = tr.querySelector('.btn-delete-report');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+          await handleDeleteReport(r.id, r.title);
+        });
+      }
+
+      elements.adminReportsTbody.appendChild(tr);
+    });
+  }
+
+  async function handleUpdateReportStatus(reportId, newStatus, currentNote) {
+    if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
+
+    try {
+      const res = await fetch(`/api/admin/reports/${reportId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminId: state.currentUser.id,
+          status: newStatus,
+          adminNote: currentNote
+        })
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message || 'Gagal memperbarui status laporan.');
+        return;
+      }
+
+      await loadAdminReports();
+    } catch (err) {
+      alert('Terjadi kesalahan jaringan: ' + err.message);
+    }
+  }
+
+  async function handleDeleteReport(reportId, title) {
+    if (!confirm(`Apakah Anda yakin ingin menghapus laporan '${title}'?`)) return;
+
+    try {
+      const res = await fetch(`/api/admin/reports/${reportId}?adminId=${state.currentUser.id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message || 'Gagal menghapus laporan.');
+        return;
+      }
+      await loadAdminReports();
+    } catch (err) {
+      alert('Terjadi kesalahan jaringan: ' + err.message);
+    }
+  }
+
+  // ==========================================================================
+  // Logika Modal Laporan Pengguna (Kritik, Saran, Bug)
+  // ==========================================================================
+  function openReportModal() {
+    if (!state.currentUser) {
+      alert('Silakan masuk ke akun terlebih dahulu untuk mengirimkan laporan.');
+      return;
+    }
+    if (elements.modalReport) {
+      elements.modalReport.style.display = 'flex';
+      switchReportTab('create');
+      if (elements.reportFormMsg) elements.reportFormMsg.style.display = 'none';
+      if (elements.formCreateReport) elements.formCreateReport.reset();
+    }
+  }
+
+  function closeReportModal() {
+    if (elements.modalReport) {
+      elements.modalReport.style.display = 'none';
+    }
+  }
+
+  function switchReportTab(tab) {
+    if (!elements.paneReportCreate || !elements.paneReportHistory) return;
+    if (tab === 'create') {
+      elements.tabBtnReportCreate.classList.add('active');
+      elements.tabBtnReportHistory.classList.remove('active');
+      elements.paneReportCreate.style.display = 'flex';
+      elements.paneReportHistory.style.display = 'none';
+    } else {
+      elements.tabBtnReportHistory.classList.add('active');
+      elements.tabBtnReportCreate.classList.remove('active');
+      elements.paneReportCreate.style.display = 'none';
+      elements.paneReportHistory.style.display = 'flex';
+      loadUserReports();
+    }
+  }
+
+  async function handleSubmitReport(e) {
+    e.preventDefault();
+    if (!state.currentUser) return;
+
+    const checkedCategory = document.querySelector('input[name="report_category"]:checked');
+    const category = checkedCategory ? checkedCategory.value : 'bug';
+    const title = elements.reportInputTitle ? elements.reportInputTitle.value.trim() : '';
+    const description = elements.reportInputDesc ? elements.reportInputDesc.value.trim() : '';
+
+    if (!title || !description) {
+      alert('Judul dan rincian laporan wajib diisi.');
+      return;
+    }
+
+    try {
+      if (elements.btnSubmitReport) {
+        elements.btnSubmitReport.disabled = true;
+        elements.btnSubmitReport.textContent = 'Mengirim Laporan...';
+      }
+
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: state.currentUser.id,
+          category,
+          title,
+          description
+        })
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message || 'Gagal mengirimkan laporan.');
+        return;
+      }
+
+      if (elements.reportFormMsg) {
+        elements.reportFormMsg.textContent = data.message;
+        elements.reportFormMsg.style.display = 'block';
+      }
+      elements.formCreateReport.reset();
+
+      setTimeout(() => {
+        switchReportTab('history');
+      }, 1200);
+
+    } catch (err) {
+      alert('Terjadi kesalahan koneksi: ' + err.message);
+    } finally {
+      if (elements.btnSubmitReport) {
+        elements.btnSubmitReport.disabled = false;
+        elements.btnSubmitReport.textContent = 'Kirim Laporan ke Admin';
+      }
+    }
+  }
+
+  async function loadUserReports() {
+    if (!state.currentUser || !elements.userReportsList) return;
+    elements.userReportsList.innerHTML = '<div style="text-align: center; color: var(--color-text-muted); padding: 24px;">Memuat riwayat laporan...</div>';
+
+    try {
+      const res = await fetch(`/api/reports?userId=${state.currentUser.id}`);
+      const data = await res.json();
+
+      if (!data.success || !data.reports || data.reports.length === 0) {
+        elements.userReportsList.innerHTML = `
+          <div style="text-align: center; color: var(--color-text-muted); padding: 32px;">
+            Belum ada laporan yang Anda kirimkan. Kritik, usulan saran, dan laporan bug yang Anda kirimkan akan tampil di sini lengkap dengan status penanganannya oleh admin.
+          </div>
+        `;
+        return;
+      }
+
+      renderUserReports(data.reports);
+    } catch (err) {
+      elements.userReportsList.innerHTML = '<div style="color: var(--color-danger); padding: 16px;">Gagal memuat riwayat laporan.</div>';
+    }
+  }
+
+  function renderUserReports(reports) {
+    if (!elements.userReportsList) return;
+    elements.userReportsList.innerHTML = '';
+
+    const categoryLabels = {
+      bug: { text: 'Bug / Kendala', cls: 'category-badge-bug' },
+      saran: { text: 'Saran Fitur', cls: 'category-badge-saran' },
+      kritik: { text: 'Kritik & Masukan', cls: 'category-badge-kritik' }
+    };
+
+    const statusMap = {
+      baru: { text: 'Baru Saja', cls: 'status-badge-baru', hint: 'Laporan telah masuk ke antrean administrator dan menunggu penanganan.' },
+      proses: { text: 'Sedang Diproses', cls: 'status-badge-proses', hint: 'Laporan telah dibaca dan sedang ditindaklanjuti oleh admin.' },
+      selesai: { text: 'Sudah Selesai', cls: 'status-badge-selesai', hint: 'Laporan telah selesai ditindaklanjuti dan diselesaikan oleh admin.' }
+    };
+
+    reports.forEach(r => {
+      const cat = categoryLabels[r.category] || { text: r.category, cls: 'category-badge-bug' };
+      const st = statusMap[r.status] || statusMap['baru'];
+      const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) : '-';
+
+      const card = document.createElement('div');
+      card.className = 'report-history-card';
+
+      let adminReplyHtml = '';
+      if (r.adminNote && r.adminNote.trim()) {
+        adminReplyHtml = `
+          <div class="report-admin-reply-box">
+            <div class="report-admin-reply-title">Tanggapan Admin (Shukoh#Dev):</div>
+            <div>${escapeHtml(r.adminNote)}</div>
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="report-card-top">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="category-badge ${cat.cls}">${cat.text}</span>
+            <span class="report-card-date">${dateStr}</span>
+          </div>
+          <span class="status-badge ${st.cls}" title="${st.hint}">${st.text}</span>
+        </div>
+        <h4 class="report-card-title">${escapeHtml(r.title)}</h4>
+        <p class="report-card-desc">${escapeHtml(r.description)}</p>
+        <div style="font-size: 11px; color: var(--color-text-muted);">${st.hint}</div>
+        ${adminReplyHtml}
+      `;
+
+      elements.userReportsList.appendChild(card);
+    });
   }
 
   // Run on DOM Loaded

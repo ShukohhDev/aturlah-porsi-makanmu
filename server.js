@@ -72,6 +72,12 @@ function readDB() {
         modified = true;
       }
     });
+    // Pastikan array reports tersedia
+    if (!Array.isArray(parsed.reports)) {
+      parsed.reports = [];
+      modified = true;
+    }
+
     if (modified) {
       writeDB(parsed);
     }
@@ -91,6 +97,7 @@ function readDB() {
         }
       ],
       meals: [],
+      reports: [],
       systemSettings: {
         geminiApiKey: process.env.GEMINI_API_KEY || ''
       }
@@ -252,6 +259,165 @@ app.delete('/api/admin/users/:userId', (req, res) => {
   writeDB(db);
 
   res.json({ success: true, message: 'Akun pengguna berhasil dihapus dari sistem.' });
+});
+
+// ============================================================================
+// Report & Feedback API (Kritik, Saran, Bug Pengguna)
+// ============================================================================
+
+// 1. Pengguna membuat laporan baru (Kritik, Saran, Bug)
+app.post('/api/reports', (req, res) => {
+  const { userId, category, title, description } = req.body;
+  if (!userId || !category || !title || !description) {
+    return res.status(400).json({ success: false, message: 'Kategori, judul, dan isi laporan wajib diisi.' });
+  }
+
+  const validCategories = ['bug', 'saran', 'kritik'];
+  if (!validCategories.includes(category)) {
+    return res.status(400).json({ success: false, message: 'Kategori laporan tidak valid. Pilih bug, saran, atau kritik.' });
+  }
+
+  const cleanTitle = title.trim();
+  const cleanDesc = description.trim();
+  if (cleanTitle.length < 3) {
+    return res.status(400).json({ success: false, message: 'Judul laporan minimal 3 karakter.' });
+  }
+  if (cleanDesc.length < 5) {
+    return res.status(400).json({ success: false, message: 'Isi laporan minimal 5 karakter.' });
+  }
+
+  const db = readDB();
+  const user = db.users.find(u => u.id === userId);
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan.' });
+  }
+
+  const newReport = {
+    id: 'rep_' + Date.now(),
+    userId: user.id,
+    username: user.username,
+    category: category,
+    title: cleanTitle,
+    description: cleanDesc,
+    status: 'baru', // 'baru' (Baru Saja), 'proses' (Sedang Diproses), 'selesai' (Sudah Selesai)
+    adminNote: '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!db.reports) db.reports = [];
+  db.reports.unshift(newReport);
+  writeDB(db);
+
+  res.json({
+    success: true,
+    message: 'Laporan Anda berhasil dikirim ke administrator. Anda dapat memantau status tindak lanjutnya pada riwayat laporan.',
+    report: newReport
+  });
+});
+
+// 2. Pengguna mengambil daftar laporan milik akunnya
+app.get('/api/reports', (req, res) => {
+  const { userId } = req.query;
+  if (!userId) {
+    return res.status(400).json({ success: false, message: 'ID pengguna wajib disertakan.' });
+  }
+
+  const db = readDB();
+  const userReports = (db.reports || [])
+    .filter(r => r.userId === userId)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  res.json({
+    success: true,
+    reports: userReports
+  });
+});
+
+// 3. Khusus Admin Shukoh#Dev: Ambil seluruh laporan pengguna
+app.get('/api/admin/reports', (req, res) => {
+  const { adminId } = req.query;
+  const db = readDB();
+
+  const requester = db.users.find(u => u.id === adminId);
+  if (!requester || requester.username !== 'Shukoh#Dev') {
+    return res.status(403).json({ success: false, message: 'Akses ditolak. Fitur laporan admin khusus untuk akun Shukoh#Dev.' });
+  }
+
+  const allReports = (db.reports || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const stats = {
+    total: allReports.length,
+    baru: allReports.filter(r => r.status === 'baru').length,
+    proses: allReports.filter(r => r.status === 'proses').length,
+    selesai: allReports.filter(r => r.status === 'selesai').length
+  };
+
+  res.json({
+    success: true,
+    stats,
+    reports: allReports
+  });
+});
+
+// 4. Khusus Admin Shukoh#Dev: Ubah status laporan ('baru', 'proses', 'selesai')
+app.patch('/api/admin/reports/:reportId', (req, res) => {
+  const { reportId } = req.params;
+  const { adminId, status, adminNote } = req.body;
+  const db = readDB();
+
+  const requester = db.users.find(u => u.id === adminId);
+  if (!requester || requester.username !== 'Shukoh#Dev') {
+    return res.status(403).json({ success: false, message: 'Akses ditolak. Hak admin hanya dimiliki secara eksklusif oleh akun Shukoh#Dev.' });
+  }
+
+  const validStatuses = ['baru', 'proses', 'selesai'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ success: false, message: 'Status tidak valid. Pilihan status: baru, proses, selesai.' });
+  }
+
+  const report = (db.reports || []).find(r => r.id === reportId);
+  if (!report) {
+    return res.status(404).json({ success: false, message: 'Laporan tidak ditemukan.' });
+  }
+
+  report.status = status;
+  if (typeof adminNote === 'string') {
+    report.adminNote = adminNote.trim();
+  }
+  report.updatedAt = new Date().toISOString();
+  writeDB(db);
+
+  res.json({
+    success: true,
+    message: 'Status laporan berhasil diperbarui.',
+    report
+  });
+});
+
+// 5. Khusus Admin Shukoh#Dev: Hapus laporan
+app.delete('/api/admin/reports/:reportId', (req, res) => {
+  const { reportId } = req.params;
+  const { adminId } = req.query;
+  const db = readDB();
+
+  const requester = db.users.find(u => u.id === adminId);
+  if (!requester || requester.username !== 'Shukoh#Dev') {
+    return res.status(403).json({ success: false, message: 'Akses ditolak.' });
+  }
+
+  const reportExists = (db.reports || []).some(r => r.id === reportId);
+  if (!reportExists) {
+    return res.status(404).json({ success: false, message: 'Laporan tidak ditemukan.' });
+  }
+
+  db.reports = (db.reports || []).filter(r => r.id !== reportId);
+  writeDB(db);
+
+  res.json({
+    success: true,
+    message: 'Laporan berhasil dihapus.'
+  });
 });
 
 // Profile API: Save/Update Profile
