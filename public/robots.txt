@@ -1,0 +1,6 @@
+# Robots.txt untuk Aturlah Porsi Makanmu
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://aturlah-porsi-makanmu.vercel.app/sitemap.xml

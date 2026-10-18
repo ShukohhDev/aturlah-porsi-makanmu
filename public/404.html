@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 Halaman Tidak Ditemukan | Aturlah Porsi Makanmu</title>
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .error-container {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    .error-code {
+      font-size: 72px;
+      font-weight: 800;
+      color: var(--color-primary);
+      line-height: 1;
+      margin-bottom: 12px;
+      letter-spacing: -2px;
+    }
+    .error-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-text-main);
+      margin-bottom: 8px;
+    }
+    .error-desc {
+      font-size: 15px;
+      color: var(--color-text-muted);
+      max-width: 440px;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .error-card {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 40px 32px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    }
+  </style>
+</head>
+<body>
+  <div class="error-container">
+    <div class="error-card">
+      <div class="error-code">404</div>
+      <h1 class="error-title">Halaman Tidak Ditemukan</h1>
+      <p class="error-desc">Tautan yang Anda tuju mungkin sudah dipindahkan, dihapus, atau tidak pernah ada dalam sistem pemantau gizi ini.</p>
+      <a href="/" class="btn-primary" style="display: inline-block; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600;">
+        Kembali ke Beranda
+      </a>
+    </div>
+  </div>
+</body>
+</html>

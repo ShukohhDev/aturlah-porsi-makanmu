@@ -12,6 +12,7 @@
   // State Aplikasi
   const state = {
     currentUser: null,
+    token: localStorage.getItem('auth_token') || '',
     selectedDate: new Date().toISOString().split('T')[0],
     cameraStream: null,
     facingMode: 'environment',
@@ -21,6 +22,22 @@
     currentAnalysis: null,
     componentsData: []
   };
+
+  // Centralized Authenticated Fetch Helper
+  async function authFetch(endpoint, options = {}) {
+    const token = state.token || localStorage.getItem('auth_token') || '';
+    const headers = Object.assign({}, options.headers || {});
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const res = await fetch(endpoint, { ...options, headers });
+    if (res.status === 401) {
+      handleLogout();
+      showAuthError('Sesi Anda telah kedaluwarsa. Silakan masuk kembali.');
+      throw new Error('Sesi kedaluwarsa');
+    }
+    return res;
+  }
 
   // DOM Elements
   const elements = {
@@ -225,11 +242,13 @@
   // Cek apakah ada sesi pengguna tersimpan
   function checkStoredSession() {
     const raw = localStorage.getItem('user_session');
-    if (raw) {
+    const token = localStorage.getItem('auth_token');
+    if (raw && token) {
       try {
         const user = JSON.parse(raw);
         if (user && user.id) {
           state.currentUser = user;
+          state.token = token;
           updateNavbarUser();
           if (user.hasProfile && user.profile) {
             showView('dashboard');
@@ -242,6 +261,7 @@
         }
       } catch (e) {
         localStorage.removeItem('user_session');
+        localStorage.removeItem('auth_token');
       }
     }
     showView('auth');
@@ -480,7 +500,11 @@
       }
 
       state.currentUser = data.user;
+      state.token = data.token || '';
       localStorage.setItem('user_session', JSON.stringify(data.user));
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+      }
       updateNavbarUser();
 
       if (data.user.hasProfile && data.user.profile) {
@@ -499,7 +523,9 @@
   // Handle Logout
   function handleLogout() {
     localStorage.removeItem('user_session');
+    localStorage.removeItem('auth_token');
     state.currentUser = null;
+    state.token = null;
     elements.authUsername.value = '';
     elements.authPassword.value = '';
     showView('auth');
@@ -585,7 +611,7 @@
     };
 
     try {
-      const res = await fetch('/api/user/profile', {
+      const res = await authFetch('/api/user/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -631,7 +657,7 @@
     elements.dashDateTag.textContent = today.toLocaleDateString('id-ID', options);
 
     try {
-      const res = await fetch(`/api/meals?userId=${state.currentUser.id}&date=${state.selectedDate}`);
+      const res = await authFetch(`/api/meals?date=${state.selectedDate}`);
       const data = await res.json();
 
       if (data.success) {
@@ -753,7 +779,7 @@
     if (!confirm('Apakah Anda yakin ingin menghapus catatan makanan ini dari riwayat?')) return;
 
     try {
-      const res = await fetch(`/api/meals/${mealId}`, { method: 'DELETE' });
+      const res = await authFetch(`/api/meals/${mealId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         loadDashboardData();
@@ -1147,7 +1173,7 @@
     };
 
     try {
-      const res = await fetch('/api/meals', {
+      const res = await authFetch('/api/meals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -1193,7 +1219,7 @@
     const key = elements.settingsApiKeyInput.value.trim();
 
     try {
-      const res = await fetch('/api/settings/key', {
+      const res = await authFetch('/api/settings/key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey: key })
@@ -1242,7 +1268,7 @@
   async function fetchAdminReportsStatsOnly() {
     if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
     try {
-      const res = await fetch(`/api/admin/reports?adminId=${state.currentUser.id}`);
+      const res = await authFetch('/api/admin/reports');
       const data = await res.json();
       if (data.success && data.stats) {
         updateAdminReportStats(data.stats);
@@ -1253,7 +1279,7 @@
   async function loadAdminUsers() {
     if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
     try {
-      const res = await fetch(`/api/admin/users?adminId=${state.currentUser.id}`);
+      const res = await authFetch('/api/admin/users');
       const data = await res.json();
       if (!data.success) {
         alert(data.message || 'Gagal memuat data pengguna.');
@@ -1362,7 +1388,7 @@
     }
 
     try {
-      const res = await fetch(`/api/admin/users/${userId}?adminId=${state.currentUser.id}`, {
+      const res = await authFetch(`/api/admin/users/${userId}`, {
         method: 'DELETE'
       });
       const data = await res.json();
@@ -1401,7 +1427,7 @@
   async function loadAdminReports() {
     if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
     try {
-      const res = await fetch(`/api/admin/reports?adminId=${state.currentUser.id}`);
+      const res = await authFetch('/api/admin/reports');
       const data = await res.json();
       if (!data.success) {
         alert(data.message || 'Gagal memuat laporan pengguna.');
@@ -1522,11 +1548,10 @@
     if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
 
     try {
-      const res = await fetch(`/api/admin/reports/${reportId}`, {
+      const res = await authFetch(`/api/admin/reports/${reportId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminId: state.currentUser.id,
           status: newStatus,
           adminNote: currentNote
         })
@@ -1548,7 +1573,7 @@
     if (!confirm(`Apakah Anda yakin ingin menghapus laporan '${title}'?`)) return;
 
     try {
-      const res = await fetch(`/api/admin/reports/${reportId}?adminId=${state.currentUser.id}`, {
+      const res = await authFetch(`/api/admin/reports/${reportId}`, {
         method: 'DELETE'
       });
       const data = await res.json();
@@ -1620,11 +1645,10 @@
         elements.btnSubmitReport.textContent = 'Mengirim Laporan...';
       }
 
-      const res = await fetch('/api/reports', {
+      const res = await authFetch('/api/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: state.currentUser.id,
           category,
           title,
           description
@@ -1662,7 +1686,7 @@
     elements.userReportsList.innerHTML = '<div style="text-align: center; color: var(--color-text-muted); padding: 24px;">Memuat riwayat laporan...</div>';
 
     try {
-      const res = await fetch(`/api/reports?userId=${state.currentUser.id}`);
+      const res = await authFetch('/api/reports');
       const data = await res.json();
 
       if (!data.success || !data.reports || data.reports.length === 0) {
