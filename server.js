@@ -114,7 +114,8 @@ function writeDB(data) {
 // Helper to get active Gemini API key
 function getGeminiKey() {
   const db = readDB();
-  return process.env.GEMINI_API_KEY || (db.systemSettings && db.systemSettings.geminiApiKey) || '';
+  const rawKey = process.env.GEMINI_API_KEY || (db.systemSettings && db.systemSettings.geminiApiKey) || '';
+  return rawKey.trim();
 }
 
 // Auth API: Login
@@ -708,7 +709,7 @@ app.post('/api/analyze-food', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Data gambar tidak ditemukan.' });
   }
 
-  const apiKey = clientApiKey || getGeminiKey();
+  const apiKey = (clientApiKey ? clientApiKey.trim() : getGeminiKey());
 
   // If no API key is set anywhere, return realistic simulation with notification
   if (!apiKey) {
