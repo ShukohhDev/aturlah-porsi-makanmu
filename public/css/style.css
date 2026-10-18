@@ -1577,7 +1577,7 @@ button {
 }
 
 /* ==========================================================================
-   Admin Panel (Khusus Shukoh#Dev)
+   Admin Panel
    ========================================================================== */
 .admin-container {
   display: flex;
@@ -1773,7 +1773,7 @@ button {
 }
 
 /* ==========================================================================
-   Admin Tabs & Reports Management (Khusus Shukoh#Dev)
+   Admin Tabs & Reports Management
    ========================================================================== */
 .admin-tab-nav {
   display: flex;
