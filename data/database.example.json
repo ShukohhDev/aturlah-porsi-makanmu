@@ -1,14 +1,5 @@
 {
-  "users": [
-    {
-      "id": "admin_1",
-      "username": "Shukoh#Dev",
-      "password": "$2a$10$EXAMPLE_HASHED_PASSWORD_WILL_BE_GENERATED_ON_STARTUP",
-      "role": "admin",
-      "profile": null,
-      "createdAt": "2026-10-18T00:00:00.000Z"
-    }
-  ],
+  "users": [],
   "meals": [],
   "reports": [],
   "systemSettings": {

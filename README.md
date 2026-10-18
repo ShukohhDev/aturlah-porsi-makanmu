@@ -4,12 +4,9 @@ Aplikasi web pemantau gizi dan kalori harian presisi berbasis analisis visual ma
 
 ## Fitur Utama
 
-1. **Autentikasi Akun Demo & Pendaftaran Baru**
-   - Akun Admin bawaan:
-     - Nama Akun: `Shukoh#Dev`
-     - Kata Sandi: `FAFA17052007`
-   - Tombol satu klik "Gunakan Akun Ini" untuk pengujian instan.
-   - Pendaftaran akun baru dengan nama dan kata sandi.
+1. **Autentikasi Akun & Pendaftaran Baru**
+   - Pendaftaran akun mandiri dengan validasi nama dan kata sandi aman.
+   - Enkripsi kata sandi menggunakan hash bcrypt dan manajemen sesi dengan token JWT bertanda tangan server.
 
 2. **Formulir Profil Gizi & Perhitungan Metabolisme**
    - Menghitung Angka Metabolisme Basal (BMR) menggunakan formula Mifflin-St Jeor:

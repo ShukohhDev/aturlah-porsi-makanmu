@@ -11,7 +11,8 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'aturlah_porsi_makanmu_jwt_secret_token_2026_x89a';
-const ADMIN_DEFAULT_PASS = process.env.ADMIN_DEFAULT_PASSWORD || 'FAFA17052007';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || '';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
 // 1. HTTP Security Headers with Helmet
 app.use(helmet({
@@ -124,8 +125,8 @@ function authenticateToken(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-  if (!req.user || req.user.role !== 'admin' || req.user.username !== 'Shukoh#Dev') {
-    return res.status(403).json({ success: false, message: 'Akses ditolak. Fitur ini khusus hanya untuk administrator utama Shukoh#Dev.' });
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ success: false, message: 'Akses ditolak. Fitur ini khusus hanya untuk administrator.' });
   }
   next();
 }
@@ -140,22 +141,23 @@ function sanitizeUser(user) {
 function readDB() {
   if (!fs.existsSync(DB_FILE)) {
     const initialData = {
-      users: [
-        {
-          id: 'admin_1',
-          username: 'Shukoh#Dev',
-          password: hashPassword(ADMIN_DEFAULT_PASS),
-          role: 'admin',
-          profile: null,
-          createdAt: new Date().toISOString()
-        }
-      ],
+      users: [],
       meals: [],
       reports: [],
       systemSettings: {
         geminiApiKey: process.env.GEMINI_API_KEY || ''
       }
     };
+    if (ADMIN_USERNAME && ADMIN_PASSWORD) {
+      initialData.users.push({
+        id: 'admin_1',
+        username: ADMIN_USERNAME,
+        password: hashPassword(ADMIN_PASSWORD),
+        role: 'admin',
+        profile: null,
+        createdAt: new Date().toISOString()
+      });
+    }
     fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), 'utf8');
     return initialData;
   }
@@ -171,32 +173,26 @@ function readDB() {
       modified = true;
     }
 
-    // Ensure admin user exists
-    const adminUser = parsed.users.find(u => u.username === 'Shukoh#Dev');
-    if (!adminUser) {
-      parsed.users.push({
-        id: 'admin_1',
-        username: 'Shukoh#Dev',
-        password: hashPassword(ADMIN_DEFAULT_PASS),
-        role: 'admin',
-        profile: null,
-        createdAt: new Date().toISOString()
-      });
-      modified = true;
+    // Ensure admin user exists if configured in env
+    if (ADMIN_USERNAME && ADMIN_PASSWORD) {
+      const adminExists = parsed.users.some(u => u.username.toLowerCase() === ADMIN_USERNAME.toLowerCase());
+      if (!adminExists) {
+        parsed.users.push({
+          id: 'admin_' + Date.now(),
+          username: ADMIN_USERNAME,
+          password: hashPassword(ADMIN_PASSWORD),
+          role: 'admin',
+          profile: null,
+          createdAt: new Date().toISOString()
+        });
+        modified = true;
+      }
     }
 
     // Auto-migrate seluruh password teks biasa ke bcrypt hash
     parsed.users.forEach(u => {
       if (u.password && !u.password.startsWith('$2a$') && !u.password.startsWith('$2b$')) {
         u.password = hashPassword(u.password);
-        modified = true;
-      }
-    });
-
-    // Pastikan hak akses admin hanya untuk Shukoh#Dev
-    parsed.users.forEach(u => {
-      if (u.username !== 'Shukoh#Dev' && u.role === 'admin') {
-        u.role = 'user';
         modified = true;
       }
     });
@@ -219,22 +215,23 @@ function readDB() {
   } catch (err) {
     console.error('Error reading database file, reinitializing:', err.message);
     const initialData = {
-      users: [
-        {
-          id: 'admin_1',
-          username: 'Shukoh#Dev',
-          password: hashPassword(ADMIN_DEFAULT_PASS),
-          role: 'admin',
-          profile: null,
-          createdAt: new Date().toISOString()
-        }
-      ],
+      users: [],
       meals: [],
       reports: [],
       systemSettings: {
         geminiApiKey: process.env.GEMINI_API_KEY || ''
       }
     };
+    if (ADMIN_USERNAME && ADMIN_PASSWORD) {
+      initialData.users.push({
+        id: 'admin_1',
+        username: ADMIN_USERNAME,
+        password: hashPassword(ADMIN_PASSWORD),
+        role: 'admin',
+        profile: null,
+        createdAt: new Date().toISOString()
+      });
+    }
     fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2), 'utf8');
     return initialData;
   }
@@ -299,10 +296,6 @@ app.post('/api/auth/register', authLimiter, (req, res) => {
   }
 
   const cleanUsername = sanitizeText(username);
-  if (cleanUsername.toLowerCase() === 'shukoh#dev') {
-    return res.status(403).json({ success: false, message: 'Nama akun Shukoh#Dev diproteksi khusus sebagai administrator utama.' });
-  }
-
   if (cleanUsername.length < 3) {
     return res.status(400).json({ success: false, message: 'Nama akun minimal 3 karakter.' });
   }
@@ -316,11 +309,16 @@ app.post('/api/auth/register', authLimiter, (req, res) => {
     return res.status(409).json({ success: false, message: 'Nama akun sudah terdaftar. Silakan gunakan nama lain atau langsung masuk.' });
   }
 
+  // Jika belum ada akun terdaftar sama sekali atau nama cocok dengan env ADMIN_USERNAME, berikan role admin
+  const isFirstUser = db.users.length === 0;
+  const isEnvAdmin = ADMIN_USERNAME && cleanUsername.toLowerCase() === ADMIN_USERNAME.toLowerCase();
+  const assignedRole = (isFirstUser || isEnvAdmin) ? 'admin' : 'user';
+
   const newUser = {
     id: 'user_' + Date.now(),
     username: cleanUsername,
     password: hashPassword(password),
-    role: 'user', // Pengguna baru selalu berstatus user biasa
+    role: assignedRole,
     profile: null,
     createdAt: new Date().toISOString()
   };
@@ -345,7 +343,7 @@ app.post('/api/auth/register', authLimiter, (req, res) => {
 });
 
 // ============================================================================
-// 2. Admin APIs (Eksklusif Shukoh#Dev, Dilindungi Token JWT)
+// 2. Admin APIs (Dilindungi Token JWT)
 // ============================================================================
 
 // Admin API: Ambil seluruh akun terdaftar
@@ -391,8 +389,8 @@ app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, (req, re
     return res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan.' });
   }
 
-  if (targetUser.username === 'Shukoh#Dev') {
-    return res.status(400).json({ success: false, message: 'Akun administrator utama tidak dapat dihapus.' });
+  if (targetUser.id === req.user.id) {
+    return res.status(400).json({ success: false, message: 'Anda tidak dapat menghapus akun Anda sendiri saat sedang masuk.' });
   }
 
   db.users = db.users.filter(u => u.id !== userId);
@@ -1002,7 +1000,7 @@ app.get('/api/settings/status', (req, res) => {
   });
 });
 
-// Update API Key (Eksklusif Admin Shukoh#Dev)
+// Update API Key (Eksklusif Administrator)
 app.post('/api/settings/key', authenticateToken, requireAdmin, (req, res) => {
   const { apiKey } = req.body;
   const db = readDB();

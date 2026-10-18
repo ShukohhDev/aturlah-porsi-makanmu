@@ -100,7 +100,6 @@
     // Auth
     tabLogin: document.getElementById('tab-login'),
     tabRegister: document.getElementById('tab-register'),
-    btnFillAdmin: document.getElementById('btn-fill-admin'),
     formAuth: document.getElementById('form-auth'),
     authUsername: document.getElementById('auth-username'),
     authPassword: document.getElementById('auth-password'),
@@ -273,14 +272,6 @@
     elements.tabLogin.addEventListener('click', () => switchAuthTab('login'));
     elements.tabRegister.addEventListener('click', () => switchAuthTab('register'));
 
-    // Preset Admin
-    elements.btnFillAdmin.addEventListener('click', () => {
-      elements.authUsername.value = 'Shukoh#Dev';
-      elements.authPassword.value = 'FAFA17052007';
-      switchAuthTab('login');
-      hideAuthError();
-    });
-
     // Form Auth Submit
     elements.formAuth.addEventListener('submit', handleAuthSubmit);
 
@@ -421,7 +412,7 @@
       elements.viewDashboard.classList.add('active');
       elements.navUserActions.style.display = 'flex';
     } else if (viewName === 'admin') {
-      if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') {
+      if (!state.currentUser || state.currentUser.role !== 'admin') {
         showView('dashboard');
         return;
       }
@@ -439,7 +430,7 @@
     }
     elements.navUserActions.style.display = 'flex';
     elements.navUsername.textContent = state.currentUser.username;
-    const isAdmin = state.currentUser.username === 'Shukoh#Dev';
+    const isAdmin = state.currentUser.role === 'admin';
     elements.userRoleBadge.textContent = isAdmin ? 'Administrator' : 'Pengguna';
     if (elements.btnAdminPanel) {
       elements.btnAdminPanel.style.display = isAdmin ? 'inline-flex' : 'none';
@@ -1250,13 +1241,13 @@
   }
 
   // ==========================================================================
-  // Logika Panel Pemantauan Administrator (Khusus Shukoh#Dev)
+  // Logika Panel Pemantauan Administrator
   // ==========================================================================
   let adminUsersList = [];
 
   async function openAdminPanel() {
-    if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') {
-      alert('Akses ditolak. Fitur pemantauan ini khusus untuk akun Shukoh#Dev.');
+    if (!state.currentUser || state.currentUser.role !== 'admin') {
+      alert('Akses ditolak. Fitur pemantauan ini khusus untuk akun administrator.');
       return;
     }
     showView('admin');
@@ -1266,7 +1257,7 @@
   }
 
   async function fetchAdminReportsStatsOnly() {
-    if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
+    if (!state.currentUser || state.currentUser.role !== 'admin') return;
     try {
       const res = await authFetch('/api/admin/reports');
       const data = await res.json();
@@ -1277,7 +1268,7 @@
   }
 
   async function loadAdminUsers() {
-    if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
+    if (!state.currentUser || state.currentUser.role !== 'admin') return;
     try {
       const res = await authFetch('/api/admin/users');
       const data = await res.json();
@@ -1338,7 +1329,7 @@
 
     filtered.forEach(u => {
       const tr = document.createElement('tr');
-      const isAdmin = u.username === 'Shukoh#Dev';
+      const isAdmin = u.role === 'admin';
       const roleBadge = isAdmin
         ? '<span class="role-badge-admin">Admin</span>'
         : '<span class="role-badge-user">User</span>';
@@ -1358,8 +1349,8 @@
         day: 'numeric'
       }) : '-';
 
-      const actionBtn = (u.username === 'Shukoh#Dev')
-        ? '<span style="font-size: 11px; color: var(--color-text-subtle);">Akun Utama</span>'
+      const actionBtn = (u.id === state.currentUser.id || u.role === 'admin')
+        ? '<span style="font-size: 11px; color: var(--color-text-subtle);">Administrator</span>'
         : `<button type="button" class="btn-subtle btn-delete-user" data-user-id="${u.id}">Hapus</button>`;
 
       tr.innerHTML = `
@@ -1403,7 +1394,7 @@
   }
 
   // ==========================================================================
-  // Logika Panel Laporan Khusus Administrator (Shukoh#Dev)
+  // Logika Panel Laporan Khusus Administrator
   // ==========================================================================
   let adminReportsList = [];
   let currentAdminReportFilter = 'all';
@@ -1425,7 +1416,7 @@
   }
 
   async function loadAdminReports() {
-    if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
+    if (!state.currentUser || state.currentUser.role !== 'admin') return;
     try {
       const res = await authFetch('/api/admin/reports');
       const data = await res.json();
@@ -1545,7 +1536,7 @@
   }
 
   async function handleUpdateReportStatus(reportId, newStatus, currentNote) {
-    if (!state.currentUser || state.currentUser.username !== 'Shukoh#Dev') return;
+    if (!state.currentUser || state.currentUser.role !== 'admin') return;
 
     try {
       const res = await authFetch(`/api/admin/reports/${reportId}`, {
@@ -1738,7 +1729,7 @@
       if (r.adminNote && r.adminNote.trim()) {
         adminReplyHtml = `
           <div class="report-admin-reply-box">
-            <div class="report-admin-reply-title">Tanggapan Admin (Shukoh#Dev):</div>
+            <div class="report-admin-reply-title">Tanggapan Administrator:</div>
             <div>${escapeHtml(r.adminNote)}</div>
           </div>
         `;
